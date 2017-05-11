@@ -1,0 +1,3 @@
+[submodule "CoSiFrontEnd"]
+	path = CoSiFrontEnd
+	url = git@git.rwth-aachen.de:SINERGIEN_ACS/CoSiFrontEnd.git
