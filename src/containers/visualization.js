@@ -350,6 +350,7 @@ class Visualization extends Component {
         <div className="box box-content" onContextMenu={ (e) => e.preventDefault() }>
           {this.state.editing &&
             <div className="toolbox box-header">
+              <ToolboxItem name="Grid" type="grid" />
               <ToolboxItem name="Value" type="widget" />
               <ToolboxItem name="Plot" type="widget" />
               <ToolboxItem name="Table" type="widget" />

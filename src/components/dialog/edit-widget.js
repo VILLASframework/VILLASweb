@@ -32,6 +32,7 @@ import EditWidgetSimulatorControl from './edit-widget-simulator-control';
 import EditWidgetSignalControl from './edit-widget-signal-control';
 import EditWidgetSignalsControl from './edit-widget-signals-control';
 import EditWidgetOrientation from './edit-widget-orientation';
+import EditImageGridControl from './edit-widget-grid-control';
 
 class EditWidgetDialog extends Component {
   static propTypes = {
@@ -134,6 +135,10 @@ class EditWidgetDialog extends Component {
       } else if (this.props.widget.type === 'Box') {
         dialogControls.push(
           <EditWidgetColorControl key={1} widget={this.state.temporal} controlId={'border_color'} label={'Border color'} validate={(id) => this.validateForm(id)} handleChange={(e, index) => this.handleChange(e, index)} />
+        )
+      } else if (this.props.widget.type === 'Grid') {
+        dialogControls.push(
+          <EditImageGridControl key={1} widget={this.state.temporal} files={this.props.files} validate={(id) => this.validateForm(id)} handleChange={(e, index) => this.handleChange(e, index)} />
         )
       }
     }

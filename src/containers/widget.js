@@ -28,6 +28,7 @@ import classNames from 'classnames';
 import AppDispatcher from '../app-dispatcher';
 import SimulatorDataStore from '../stores/simulator-data-store';
 import FileStore from '../stores/file-store';
+import GridStore from '../stores/grid-store';
 
 import WidgetValue from '../components/widget-value';
 import WidgetPlot from '../components/widget-plot';
@@ -40,12 +41,13 @@ import WidgetNumberInput from '../components/widget-number-input';
 import WidgetSlider from '../components/widget-slider';
 import WidgetGauge from '../components/widget-gauge';
 import WidgetBox from '../components/widget-box';
+import WidgetGrid from '../components/widget-grid';
 
 import '../styles/widgets.css';
 
 class Widget extends Component {
   static getStores() {
-    return [ SimulatorDataStore, FileStore ];
+    return [ SimulatorDataStore, FileStore, GridStore ];
   }
 
   static calculateState(prevState) {
@@ -53,6 +55,7 @@ class Widget extends Component {
       return {
         simulatorData: SimulatorDataStore.getState(),
         files: FileStore.getState(),
+        grids: GridStore.getState(),
 
         sequence: prevState.sequence + 1
       }
@@ -60,6 +63,7 @@ class Widget extends Component {
       return {
         simulatorData: SimulatorDataStore.getState(),
         files: FileStore.getState(),
+        grids: GridStore.getState(),
 
         sequence: 0
       };
@@ -161,6 +165,9 @@ class Widget extends Component {
       element = <WidgetGauge widget={widget} data={this.state.simulatorData} editing={this.props.editing} simulation={this.props.simulation} />
     } else if (widget.type === 'Box') {
       element = <WidgetBox widget={widget} editing={this.props.editing} />
+    } else if (widget.type === 'Grid') {
+      element = <WidgetGrid widget={widget} editing={this.props.editing} grids={this.state.grids} />
+      borderedWidget = true;
     }
     
     let widgetClasses = classNames({
