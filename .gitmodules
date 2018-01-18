@@ -1,0 +1,3 @@
+[submodule "public/Pintura"]
+	path = public/Pintura
+  url = ../../../core/cim/Pintura.git

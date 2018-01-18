@@ -2,6 +2,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
   CI: "true"
 
+before_script:
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+
 cache:
   untracked: true
   key: "$CI_PROJECT_ID"
