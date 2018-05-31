@@ -93,7 +93,7 @@ class WidgetContextMenu extends React.Component {
     render() {
         const isLocked = this.props.widget.locked;
 
-        return <ContextMenu id={'widgetMenu'+ this.props.index} key={this.props.index}>
+        return <ContextMenu id={'widgetMenu'+ this.props.index}>
             <Item disabled={isLocked} onClick={this.editWidget}>Edit</Item>
             <Item disabled={isLocked} onClick={this.deleteWidget}>Delete</Item>
 

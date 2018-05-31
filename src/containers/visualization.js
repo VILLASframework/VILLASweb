@@ -150,8 +150,7 @@ class Visualization extends React.Component {
   }*/
 
   getNewWidgetKey() {
-    // Increase the counter and update the state
-    return this.state.last_widget_key++;
+    this.setState({ last_widget_key: this.state.last_widget_key + 1 });
   }
 
   transformToWidgetsDict(widgets) {
@@ -232,20 +231,22 @@ class Visualization extends React.Component {
     this.widgetChange(updated_widget, key, this.saveChanges);
   }
 
-  widgetChange(updated_widget, key, callback = null) {
-    var widgets_update = {};
-    widgets_update[key] =  updated_widget;
-    var new_widgets = Object.assign({}, this.state.visualization.widgets, widgets_update);
+  widgetChange = (widget, index, callback = null) => {
+    const widgets_update = {};
+    widgets_update[index] =  widget;
 
-    var visualization = Object.assign({}, this.state.visualization, {
+    const new_widgets = Object.assign({}, this.state.visualization.widgets, widgets_update);
+
+    const visualization = Object.assign({}, this.state.visualization, {
       widgets: new_widgets
     });
 
     // Check if the height needs to be increased, the section may have shrunk if not
-    if (!this.increaseHeightWithWidget(updated_widget)) {
+    if (!this.increaseHeightWithWidget(widget)) {
       this.computeHeightWithWidgets(visualization.widgets);
     }
-    this.setState({ visualization: visualization }, callback);
+
+    this.setState({ visualization }, callback);
   }
 
   /*
@@ -524,8 +525,9 @@ class Visualization extends React.Component {
 
           {this.state.visualization.widgets != null &&
             Object.keys(this.state.visualization.widgets).map(widgetKey => (
-              <WidgetContextMenu index={widgetKey} widget={this.state.visualization.widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
-            ))}
+              <WidgetContextMenu key={widgetKey} index={widgetKey} widget={this.state.visualization.widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
+            ))
+          }
 
           <EditWidget sessionToken={this.state.sessionToken} show={this.state.editModal} onClose={(data) => this.closeEdit(data)} widget={this.state.modalData} simulationModels={this.state.simulationModels} files={this.state.files} />
         </div>
