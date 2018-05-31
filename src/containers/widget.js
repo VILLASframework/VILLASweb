@@ -49,142 +49,124 @@ import WidgetTopology from '../components/widget-topology';
 import '../styles/widgets.css';
 
 class Widget extends React.Component {
-  static getStores() {
-    return [ SimulatorDataStore, SimulationModelStore, FileStore, UserStore ];
-  }
-
-  static calculateState(prevState, props) {
-    const sessionToken = UserStore.getState().token;
-
-    let simulatorData = {};
-
-    if (props.paused) {
-      if (prevState && prevState.simulatorData) {
-        simulatorData = JSON.parse(JSON.stringify(prevState.simulatorData));
-      }
-    } else {
-      simulatorData = SimulatorDataStore.getState();
+    static getStores() {
+        return [ SimulatorDataStore, SimulationModelStore, FileStore, UserStore ];
     }
 
-    if (prevState) {
-      return {
-        sessionToken,
-        simulatorData,
-        files: FileStore.getState(),
-        sequence: prevState.sequence + 1,
+    static calculateState(prevState, props) {
+        let simulatorData = {};
 
-        simulationModels: SimulationModelStore.getState()
-      };
-    } else {
-      return {
-        sessionToken,
-        simulatorData,
-        files: FileStore.getState(),
-        sequence: 0,
+        if (props.paused) {
+            if (prevState && prevState.simulatorData) {
+                simulatorData = JSON.parse(JSON.stringify(prevState.simulatorData));
+            }
+        } else {
+            simulatorData = SimulatorDataStore.getState();
+        }
 
-        simulationModels: SimulationModelStore.getState()
-      };
-    }
-  }
+        return {
+            simulatorData,
+            files: FileStore.getState(),
+            simulationModels: SimulationModelStore.getState(),
 
-  constructor(props) {
-    super(props);
+            sequence: prevState != null ? prevState.sequence + 1 : 0,
 
-    // Reference to the context menu element
-    this.contextMenuTriggerViaDraggable = null;
-  }
-
-  componentWillMount() {
-    // If loading for the first time
-    if (this.state.sessionToken) {
-      AppDispatcher.dispatch({
-        type: 'files/start-load',
-        token: this.state.sessionToken
-      });
-
-      AppDispatcher.dispatch({
-        type: 'simulationModels/start-load',
-        token: this.state.sessionToken
-      });
-    }
-  }
-
-  inputDataChanged(widget, data) {
-    let simulationModel = null;
-
-    for (let model of this.state.simulationModels) {
-      if (model._id !== widget.simulationModel) {
-        continue;
-      }
-
-      simulationModel = model;
+            sessionToken: UserStore.getState().token
+        };
     }
 
-    AppDispatcher.dispatch({
-      type: 'simulatorData/inputChanged',
-      simulator: simulationModel.simulator,
-      signal: widget.signal,
-      data
-    });
-  }
+    componentWillMount() {
+        if (this.state.sessionToken == null) {
+            return;
+        }
 
-  createWidget(widget) {
-    let simulationModel = null;
+        AppDispatcher.dispatch({
+            type: 'files/start-load',
+            token: this.state.sessionToken
+        });
 
-    for (let model of this.state.simulationModels) {
-      if (model._id !== widget.simulationModel) {
-        continue;
+        AppDispatcher.dispatch({
+            type: 'simulationModels/start-load',
+            token: this.state.sessionToken
+        });
+    }
+
+    inputDataChanged(widget, data) {
+        let simulationModel = null;
+
+        for (let model of this.state.simulationModels) {
+            if (model._id !== widget.simulationModel) {
+                continue;
+            }
+
+            simulationModel = model;
+        }
+
+        AppDispatcher.dispatch({
+            type: 'simulatorData/inputChanged',
+            simulator: simulationModel.simulator,
+            signal: widget.signal,
+            data
+        });
+    }
+
+    createWidget(widget) {
+      let simulationModel = null;
+
+      for (let model of this.state.simulationModels) {
+          if (model._id !== widget.simulationModel) {
+              continue;
+          }
+
+          simulationModel = model;
       }
 
-      simulationModel = model;
+      if (widget.type === 'Lamp') {
+          return <WidgetLamp widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
+      } else if (widget.type === 'Value') {
+          return <WidgetValue widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
+      } else if (widget.type === 'Plot') {
+          return <WidgetPlot widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} paused={this.props.paused} />
+      } else if (widget.type === 'Table') {
+          return <WidgetTable widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
+      } else if (widget.type === 'Label') {
+          return <WidgetLabel widget={widget} />
+      } else if (widget.type === 'PlotTable') {
+          return <WidgetPlotTable widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} editing={this.props.editing} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index)} paused={this.props.paused} />
+      } else if (widget.type === 'Image') {
+          return <WidgetImage widget={widget} files={this.state.files} token={this.state.sessionToken} />
+      } else if (widget.type === 'Button') {
+          return <WidgetButton widget={widget} editing={this.props.editing} />
+      } else if (widget.type === 'NumberInput') {
+          return <WidgetNumberInput widget={widget} editing={this.props.editing} simulationModel={simulationModel} />
+      } else if (widget.type === 'Slider') {
+          return <WidgetSlider widget={widget} editing={this.props.editing} simulationModel={simulationModel} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index) } onInputChanged={value => this.inputDataChanged(widget, value)} />
+      } else if (widget.type === 'Gauge') {
+          return <WidgetGauge widget={widget} data={this.state.simulatorData} editing={this.props.editing} simulationModel={simulationModel} />
+      } else if (widget.type === 'Box') {
+          return <WidgetBox widget={widget} editing={this.props.editing} />
+      } else if (widget.type === 'HTML') {
+          return <WidgetHTML widget={widget} editing={this.props.editing} />
+      } else if (widget.type === 'Topology') {
+          return <WidgetTopology widget={widget} files={this.state.files} />
+      }
+
+      return null;
     }
 
-    if (widget.type === 'Lamp') {
-      return <WidgetLamp widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
-    } else if (widget.type === 'Value') {
-      return <WidgetValue widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
-    } else if (widget.type === 'Plot') {
-      return <WidgetPlot widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} paused={this.props.paused} />
-    } else if (widget.type === 'Table') {
-      return <WidgetTable widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
-    } else if (widget.type === 'Label') {
-      return <WidgetLabel widget={widget} />
-    } else if (widget.type === 'PlotTable') {
-      return <WidgetPlotTable widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} editing={this.props.editing} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index)} paused={this.props.paused} />
-    } else if (widget.type === 'Image') {
-      return <WidgetImage widget={widget} files={this.state.files} token={this.state.sessionToken} />
-    } else if (widget.type === 'Button') {
-      return <WidgetButton widget={widget} editing={this.props.editing} />
-    } else if (widget.type === 'NumberInput') {
-      return <WidgetNumberInput widget={widget} editing={this.props.editing} simulationModel={simulationModel} />
-    } else if (widget.type === 'Slider') {
-      return <WidgetSlider widget={widget} editing={this.props.editing} simulationModel={simulationModel} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index) } onInputChanged={value => this.inputDataChanged(widget, value)} />
-    } else if (widget.type === 'Gauge') {
-      return <WidgetGauge widget={widget} data={this.state.simulatorData} editing={this.props.editing} simulationModel={simulationModel} />
-    } else if (widget.type === 'Box') {
-      return <WidgetBox widget={widget} editing={this.props.editing} />
-    } else if (widget.type === 'HTML') {
-      return <WidgetHTML widget={widget} editing={this.props.editing} />
-    } else if (widget.type === 'Topology') {
-      return <WidgetTopology widget={widget} files={this.state.files} />
+    render() {
+        const element = this.createWidget(this.props.data);
+
+        if (this.props.editing) {
+            return <EditableWidgetContainer widget={this.props.data} grid={this.props.grid} index={this.props.index}>
+                {element}
+            </EditableWidgetContainer>;
+        }
+
+        return <WidgetContainer widget={this.props.data}>
+            {element}
+        </WidgetContainer>;
     }
-
-    return null;
-  }
-
-  render() {
-    const element = this.createWidget(this.props.data);
-
-    if (this.props.editing) {
-      return <EditableWidgetContainer widget={this.props.data} grid={this.props.grid} index={this.props.index}>
-        {element}
-      </EditableWidgetContainer>;
-    }
-
-    return <WidgetContainer widget={this.props.data}>
-      {element}
-    </WidgetContainer>;
-  }
 }
 
 export default Container.create(Widget, { withProps: true });
