@@ -21,7 +21,6 @@
 
 import React from 'react';
 import { Container } from 'flux/utils';
-import { Button, Glyphicon } from 'react-bootstrap';
 import Fullscreenable from 'react-fullscreenable';
 import classNames from 'classnames';
 
@@ -30,6 +29,7 @@ import EditWidget from '../components/dialog/edit-widget';
 import WidgetContextMenu from '../components/widget-context-menu';
 import WidgetToolbox from '../components/widget-toolbox';
 import WidgetArea from '../components/widget-area';
+import VisualizationButtonGroup from '../components/visualization-button-group';
 
 import UserStore from '../stores/user-store';
 import VisualizationStore from '../stores/visualization-store';
@@ -81,14 +81,11 @@ class Visualization extends React.Component {
   }
 
   componentWillMount() {
-    // TODO: Don't fetch token from local, use user-store!
-    const token = localStorage.getItem('token');
-
     //document.addEventListener('keydown', this.handleKeydown.bind(this));
 
     AppDispatcher.dispatch({
       type: 'visualizations/start-load',
-      token
+      token: this.state.sessionToken
     });
   }
 
@@ -107,12 +104,10 @@ class Visualization extends React.Component {
         if (project._id === this.state.visualization.project) {
           this.setState({ project: project, simulation: null });
 
-          const token = localStorage.getItem('token');
-
           AppDispatcher.dispatch({
             type: 'simulations/start-load',
             data: project.simulation,
-            token
+            token: this.state.sessionToken
           });
         }
       });
@@ -166,7 +161,7 @@ class Visualization extends React.Component {
     }
 
     return increased;
-}
+  }
 
   transformToWidgetsDict(widgets) {
     var widgetsDict = {};
@@ -176,6 +171,10 @@ class Visualization extends React.Component {
   }
 
   transformToWidgetsList(widgets) {
+    if (widgets == null) {
+      return [];
+    }
+
     return Object.keys(widgets).map( (key) => widgets[key]);
   }
 
@@ -193,19 +192,17 @@ class Visualization extends React.Component {
 
         this.setState({ visualization: visualization, project: null });
 
-        const token = localStorage.getItem('token');
-
         AppDispatcher.dispatch({
           type: 'projects/start-load',
           data: visualization.project,
-          token
+          token: this.state.sessionToken
         });
       }
     });
   }
 
   handleDrop = widget => {
-    const widgets = this.state.visualization.widgets;
+    const widgets = this.state.visualization.widgets || [];
 
     const widgetKey = this.getNewWidgetKey();
     widgets[widgetKey] = widget;
@@ -258,7 +255,6 @@ class Visualization extends React.Component {
     });
   }
   
-
   editWidget = (widget, index) => {
     this.setState({ editModal: true, modalData: widget, modalIndex: index });
   }
@@ -291,27 +287,30 @@ class Visualization extends React.Component {
     this.setState({ visualization });
   }
 
-  stopEditing() {
+  startEditing = () => {
+    this.setState({ editing: true });
+  }
+
+  saveEditing = () => {
     // Provide the callback so it can be called when state change is applied
+    // TODO: Check if callback is needed
     this.setState({ editing: false }, this.saveChanges );
   }
 
   saveChanges() {
     // Transform to a list
-    var visualization = Object.assign({}, this.state.visualization, {
-        widgets: this.transformToWidgetsList(this.state.visualization.widgets)
-      });
-
-      const token = localStorage.getItem('token');
+    const visualization = Object.assign({}, this.state.visualization, {
+      widgets: this.transformToWidgetsList(this.state.visualization.widgets)
+    });
 
     AppDispatcher.dispatch({
       type: 'visualizations/start-edit',
       data: visualization,
-      token
+      token: this.state.sessionToken
     });
   }
 
-  discardChanges() {
+  cancelEditing = () => {
     this.setState({ editing: false, visualization: {} });
 
     this.reloadVisualization();
@@ -336,28 +335,7 @@ class Visualization extends React.Component {
   render() {
     const widgets = this.state.visualization.widgets;
 
-    let boxClasses = classNames('section', 'box', { 'fullscreen-padding': this.props.isFullscreen });
-
-    let buttons = []
-
-    if (this.state.editing) {
-      buttons.push({ click: () => this.stopEditing(), glyph: 'floppy-disk', text: 'Save' });
-      buttons.push({ click: () => this.discardChanges(), glyph: 'remove', text: 'Cancel' });
-    }
-
-    if (!this.props.isFullscreen) {
-      buttons.push({ click: this.props.toggleFullscreen, glyph: 'resize-full', text: 'Fullscreen' });
-      buttons.push({ click: this.state.paused ? this.unpauseData : this.pauseData, glyph: this.state.paused ? 'play' : 'pause', text: this.state.paused  ? 'Live' : 'Pause' });
-
-      if (!this.state.editing)
-        buttons.push({ click: () => this.setState({ editing: true }), glyph: 'pencil', text: 'Edit' });
-    }
-
-    const buttonList = buttons.map((btn, idx) =>
-      <Button key={idx} bsStyle="info" onClick={btn.click} style={{ marginLeft: '8px' }}>
-        <Glyphicon glyph={btn.glyph} /> {btn.text}
-      </Button>
-    );
+    const boxClasses = classNames('section', 'box', { 'fullscreen-padding': this.props.isFullscreen });
     
     return (
       <div className={boxClasses} >
@@ -366,9 +344,17 @@ class Visualization extends React.Component {
             <span>{this.state.visualization.name}</span>
           </div>
 
-          <div className="section-buttons-group-right">
-            { buttonList }
-          </div>
+          <VisualizationButtonGroup 
+            editing={this.state.editing}
+            fullscreen={this.props.isFullscreen}
+            paused={this.state.paused}
+            onEdit={this.startEditing}
+            onSave={this.saveEditing}
+            onCancel={this.cancelEditing}
+            onFullscreen={this.props.toggleFullscreen}
+            onPause={this.pauseData}
+            onUnpause={this.unpauseData}
+          />
         </div>
 
         <div className="box box-content" onContextMenu={ (e) => e.preventDefault() }>
@@ -391,7 +377,8 @@ class Visualization extends React.Component {
               />
             ))}
           </WidgetArea>
-
+          
+          {/* TODO: Create only one context menu for all widgets */}
           {widgets != null && Object.keys(widgets).map(widgetKey => (
             <WidgetContextMenu key={widgetKey} index={widgetKey} widget={widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
           ))}
