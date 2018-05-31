@@ -23,16 +23,15 @@ import React from 'react';
 import { Container } from 'flux/utils';
 import { Button, Glyphicon } from 'react-bootstrap';
 import Fullscreenable from 'react-fullscreenable';
-import Slider from 'rc-slider';
 import classNames from 'classnames';
 
 import WidgetFactory from '../components/widget-factory';
-import ToolboxItem from '../components/toolbox-item';
 import Dropzone from '../components/dropzone';
 import Widget from './widget';
 import EditWidget from '../components/dialog/edit-widget';
 import Grid from '../components/grid';
 import WidgetContextMenu from '../components/widget-context-menu';
+import WidgetToolbox from '../components/widget-toolbox';
 
 import UserStore from '../stores/user-store';
 import VisualizationStore from '../stores/visualization-store';
@@ -381,13 +380,8 @@ class Visualization extends React.Component {
     return widget;
   }
 
-  setGrid(value) {
-    // value 0 would block all widgets, set 1 as 'grid disabled'
-    if (value === 0) {
-      value = 1;
-    }
-
-    let visualization = Object.assign({}, this.state.visualization, {
+  setGrid = value => {
+    const visualization = Object.assign({}, this.state.visualization, {
       grid: value
     });
 
@@ -436,16 +430,8 @@ class Visualization extends React.Component {
     let boxClasses = classNames('section', 'box', { 'fullscreen-padding': this.props.isFullscreen });
 
     let buttons = []
-    let editingControls = [];
 
     if (this.state.editing) {
-      editingControls.push(
-        <div key={editingControls.length}>
-          <span>Grid: {this.state.visualization.grid > 1 ? this.state.visualization.grid : 'Disabled'}</span>
-          <Slider value={this.state.visualization.grid} style={{ width: '80px' }} step={5} onChange={value => this.setGrid(value)} />
-        </div>
-      )
-
       buttons.push({ click: () => this.stopEditing(), glyph: 'floppy-disk', text: 'Save' });
       buttons.push({ click: () => this.discardChanges(), glyph: 'remove', text: 'Cancel' });
     }
@@ -463,10 +449,6 @@ class Visualization extends React.Component {
         <Glyphicon glyph={btn.glyph} /> {btn.text}
       </Button>
     );
-
-    // Only one topology widget at the time is supported
-    let thereIsTopologyWidget = current_widgets && Object.values(current_widgets).filter( widget => widget.type === 'Topology').length > 0;
-    let topologyItemMsg = !thereIsTopologyWidget? '' : 'Currently only one is supported';
     
     return (
       <div className={boxClasses} >
@@ -482,26 +464,7 @@ class Visualization extends React.Component {
 
         <div className="box box-content" onContextMenu={ (e) => e.preventDefault() }>
           {this.state.editing &&
-            <div className="toolbox box-header">
-              <ToolboxItem name="Lamp" type="widget" />
-              <ToolboxItem name="Value" type="widget" />
-              <ToolboxItem name="Plot" type="widget" />
-              <ToolboxItem name="Table" type="widget" />
-              <ToolboxItem name="Label" type="widget" />
-              <ToolboxItem name="Image" type="widget" />
-              <ToolboxItem name="PlotTable" type="widget" />
-              <ToolboxItem name="Button" type="widget" />
-              <ToolboxItem name="NumberInput" type="widget" />
-              <ToolboxItem name="Slider" type="widget" />
-              <ToolboxItem name="Gauge" type="widget" />
-              <ToolboxItem name="Box" type="widget" />
-              <ToolboxItem name="HTML" type="html" />
-              <ToolboxItem name="Topology" type="widget" disabled={thereIsTopologyWidget} title={topologyItemMsg}/>
-
-              <div className="section-buttons-group-right">
-                { editingControls }
-              </div>
-            </div>
+            <WidgetToolbox grid={this.state.visualization.grid} onGridChange={this.setGrid} widgets={this.state.visualization.widgets} />
           }
 
           <Dropzone height={this.state.dropZoneHeight} onDrop={(item, position) => this.handleDrop(item, position)} editing={this.state.editing}>
