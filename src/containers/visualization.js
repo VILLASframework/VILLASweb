@@ -25,13 +25,11 @@ import { Button, Glyphicon } from 'react-bootstrap';
 import Fullscreenable from 'react-fullscreenable';
 import classNames from 'classnames';
 
-import WidgetFactory from '../components/widget-factory';
-import Dropzone from '../components/dropzone';
 import Widget from './widget';
 import EditWidget from '../components/dialog/edit-widget';
-import Grid from '../components/grid';
 import WidgetContextMenu from '../components/widget-context-menu';
 import WidgetToolbox from '../components/widget-toolbox';
+import WidgetArea from '../components/widget-area';
 
 import UserStore from '../stores/user-store';
 import VisualizationStore from '../stores/visualization-store';
@@ -40,8 +38,6 @@ import SimulationStore from '../stores/simulation-store';
 import SimulationModelStore from '../stores/simulation-model-store';
 import FileStore from '../stores/file-store';
 import AppDispatcher from '../app-dispatcher';
-import NotificationsDataManager from '../data-managers/notifications-data-manager';
-import NotificationsFactory from '../data-managers/notifications-factory';
 
 import 'react-contexify/dist/ReactContexify.min.css';
 
@@ -149,8 +145,28 @@ class Visualization extends React.Component {
   }*/
 
   getNewWidgetKey() {
+    const widgetKey = this.state.last_widget_key;
+
     this.setState({ last_widget_key: this.state.last_widget_key + 1 });
+
+    return widgetKey;
   }
+
+  increaseHeightWithWidget(widget) {
+    let increased = false;
+    let thisWidgetHeight = widget.y + widget.height;
+
+    if (thisWidgetHeight > this.state.maxWidgetHeight) {
+        increased = true;
+
+        this.setState({
+            maxWidgetHeight: thisWidgetHeight,
+            dropZoneHeight:  thisWidgetHeight + 40
+        });
+    }
+
+    return increased;
+}
 
   transformToWidgetsDict(widgets) {
     var widgetsDict = {};
@@ -188,41 +204,17 @@ class Visualization extends React.Component {
     });
   }
 
-  snapToGrid(value) {
-    if (this.state.visualization.grid === 1) return value;
+  handleDrop = widget => {
+    const widgets = this.state.visualization.widgets;
 
-    return Math.round(value / this.state.visualization.grid) * this.state.visualization.grid;
-  }
+    const widgetKey = this.getNewWidgetKey();
+    widgets[widgetKey] = widget;
 
-  handleDrop(item, position) {
+    const visualization = Object.assign({}, this.state.visualization, { widgets });
 
-    let widget = null;
-    let defaultSimulationModel = null;
-
-    if (this.state.simulation.models && this.state.simulation.models.length === 0) {
-      NotificationsDataManager.addNotification(NotificationsFactory.NO_SIM_MODEL_AVAILABLE);
-    } else {
-      defaultSimulationModel = this.state.simulation.models[0];
-    }
-
-    // snap position to grid
-    position.x = this.snapToGrid(position.x);
-    position.y = this.snapToGrid(position.y);
-
-    // create new widget
-    widget = WidgetFactory.createWidgetOfType(item.name, position, defaultSimulationModel);
-
-    var new_widgets = this.state.visualization.widgets;
-
-    var widget_key = this.getNewWidgetKey();
-    new_widgets[widget_key] = widget;
-
-    var visualization = Object.assign({}, this.state.visualization, {
-      widgets: new_widgets
-    });
-
-    this.increaseHeightWithWidget(widget);
-    this.setState({ visualization: visualization });
+    // this.increaseHeightWithWidget(widget);
+    
+    this.setState({ visualization });
   }
 
   widgetStatusChange(updated_widget, key) {
@@ -265,22 +257,7 @@ class Visualization extends React.Component {
       dropZoneHeight:  maxHeight + 80
     });
   }
-  /*
-  * Adapt the area's height with the position of the new widget.
-  * Return true if the height increased, otherwise false.
-  */
-  increaseHeightWithWidget(widget) {
-    let increased = false;
-    let thisWidgetHeight = widget.y + widget.height;
-    if (thisWidgetHeight > this.state.maxWidgetHeight) {
-      increased = true;
-      this.setState({
-        maxWidgetHeight: thisWidgetHeight,
-        dropZoneHeight:  thisWidgetHeight + 40
-      });
-    }
-    return increased;
-  }
+  
 
   editWidget = (widget, index) => {
     this.setState({ editModal: true, modalData: widget, modalIndex: index });
@@ -340,79 +317,11 @@ class Visualization extends React.Component {
     this.reloadVisualization();
   }
 
-  moveWidget(e, data, applyDirection) {
-    var widget = this.state.visualization.widgets[data.key];
-    var updated_widgets = {};
-    updated_widgets[data.key] = applyDirection(widget);
-    var new_widgets = Object.assign({}, this.state.visualization.widgets, updated_widgets);
-
-    var visualization = Object.assign({}, this.state.visualization, {
-      widgets: new_widgets
-    });
-
-    this.setState({ visualization: visualization });
-  }
-
-  moveAbove(widget) {
-    // increase z-Order
-    widget.z++;
-     return widget;
-  }
-
-  moveToFront(widget) {
-    // increase z-Order
-    widget.z = 100;
-    return widget;
-  }
-
-  moveUnderneath(widget) {
-    // decrease z-Order
-    widget.z--;
-    if (widget.z < 0) {
-      widget.z = 0;
-    }
-    return widget;
-  }
-
-  moveToBack(widget) {
-    // increase z-Order
-    widget.z = 0;
-    return widget;
-  }
-
   setGrid = value => {
     const visualization = Object.assign({}, this.state.visualization, {
       grid: value
     });
 
-    this.setState({ visualization });
-  }
-
-  lockWidget(data) {
-    // lock the widget
-    let widget = this.state.visualization.widgets[data.key];
-    widget.locked = true;
-
-    // update visualization
-    let widgets = {};
-    widgets[data.key] = widget;
-    widgets = Object.assign({}, this.state.visualization.widgets, widgets);
-
-    const visualization = Object.assign({}, this.state.visualization, { widgets });
-    this.setState({ visualization });
-  }
-
-  unlockWidget(data) {
-    // lock the widget
-    let widget = this.state.visualization.widgets[data.key];
-    widget.locked = false;
-
-    // update visualization
-    let widgets = {};
-    widgets[data.key] = widget;
-    widgets = Object.assign({}, this.state.visualization.widgets, widgets);
-
-    const visualization = Object.assign({}, this.state.visualization, { widgets });
     this.setState({ visualization });
   }
 
@@ -425,7 +334,7 @@ class Visualization extends React.Component {
   }
 
   render() {
-    const current_widgets = this.state.visualization.widgets;
+    const widgets = this.state.visualization.widgets;
 
     let boxClasses = classNames('section', 'box', { 'fullscreen-padding': this.props.isFullscreen });
 
@@ -464,33 +373,28 @@ class Visualization extends React.Component {
 
         <div className="box box-content" onContextMenu={ (e) => e.preventDefault() }>
           {this.state.editing &&
-            <WidgetToolbox grid={this.state.visualization.grid} onGridChange={this.setGrid} widgets={this.state.visualization.widgets} />
+            <WidgetToolbox grid={this.state.visualization.grid} onGridChange={this.setGrid} widgets={widgets} />
           }
 
-          <Dropzone height={this.state.dropZoneHeight} onDrop={(item, position) => this.handleDrop(item, position)} editing={this.state.editing}>
-            {current_widgets != null &&
-              Object.keys(current_widgets).map(widget_key => (
+          <WidgetArea widgets={widgets} editing={this.state.editing} grid={this.state.visualization.grid} onWidgetAdded={this.handleDrop}>
+            {widgets != null && Object.keys(widgets).map(widgetKey => (
               <Widget
-                key={widget_key}
-                data={current_widgets[widget_key]}
+                key={widgetKey}
+                data={widgets[widgetKey]}
                 simulation={this.state.simulation}
                 onWidgetChange={(w, k) => this.widgetChange(w, k)}
                 onWidgetStatusChange={(w, k) => this.widgetStatusChange(w, k)}
                 editing={this.state.editing}
-                index={widget_key}
+                index={widgetKey}
                 grid={this.state.visualization.grid}
                 paused={this.state.paused}
               />
             ))}
+          </WidgetArea>
 
-            <Grid size={this.state.visualization.grid} disabled={this.state.visualization.grid === 1 || !this.state.editing} />
-          </Dropzone>
-
-          {this.state.visualization.widgets != null &&
-            Object.keys(this.state.visualization.widgets).map(widgetKey => (
-              <WidgetContextMenu key={widgetKey} index={widgetKey} widget={this.state.visualization.widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
-            ))
-          }
+          {widgets != null && Object.keys(widgets).map(widgetKey => (
+            <WidgetContextMenu key={widgetKey} index={widgetKey} widget={widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
+          ))}
 
           <EditWidget sessionToken={this.state.sessionToken} show={this.state.editModal} onClose={(data) => this.closeEdit(data)} widget={this.state.modalData} simulationModels={this.state.simulationModels} files={this.state.files} />
         </div>
