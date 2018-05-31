@@ -21,8 +21,6 @@
 
 import React from 'react';
 import { Container } from 'flux/utils';
-import { ContextMenuProvider } from 'react-contexify';
-import Rnd from 'react-rnd';
 import classNames from 'classnames';
 
 import AppDispatcher from '../app-dispatcher';
@@ -30,6 +28,8 @@ import UserStore from '../stores/user-store';
 import SimulatorDataStore from '../stores/simulator-data-store';
 import SimulationModelStore from '../stores/simulation-model-store';
 import FileStore from '../stores/file-store';
+
+import EditableWidget from '../components/editable-widget-base';
 
 import WidgetLamp from '../components/widget-lamp';
 import WidgetValue from '../components/widget-value';
@@ -109,60 +109,6 @@ class Widget extends React.Component {
     }
   }
 
-  snapToGrid(value) {
-    if (this.props.grid === 1)
-      return value;
-
-    return Math.round(value / this.props.grid) * this.props.grid;
-  }
-
-  drag(event, data) {
-    const x = this.snapToGrid(data.x);
-    const y = this.snapToGrid(data.y);
-
-    if (x !== data.x || y !== data.y) {
-      this.rnd.updatePosition({ x, y });
-    }
-  }
-
-  dragStop(event, data) {
-    // update widget
-    let widget = this.props.data;
-    widget.x = this.snapToGrid(data.x);
-    widget.y = this.snapToGrid(data.y);
-
-    this.props.onWidgetChange(widget, this.props.index);
-  }
-
-  resizeStop(direction, delta, event) {
-    // update widget
-    let widget = Object.assign({}, this.props.data);
-
-    // resize depends on direction
-    if (direction === 'left' || direction === 'topLeft' || direction === 'bottomLeft') {
-      widget.x -= delta.width;
-    }
-
-    if (direction === 'top' || direction === 'topLeft' || direction === 'topRight') {
-      widget.y -= delta.height;
-    }
-
-    widget.width += delta.width;
-    widget.height += delta.height;
-
-    this.props.onWidgetChange(widget, this.props.index);
-  }
-
-  borderWasClicked(e) {
-    // check if it was triggered by the right button
-    if (e.button === 2) {
-      // launch the context menu using the reference
-      if(this.contextMenuTriggerViaDraggable) {
-          this.contextMenuTriggerViaDraggable.handleContextClick(e);
-      }
-    }
-  }
-
   inputDataChanged(widget, data) {
     let simulationModel = null;
 
@@ -202,7 +148,7 @@ class Widget extends React.Component {
     } else if (widget.type === 'NumberInput') {
       return <WidgetNumberInput widget={widget} editing={this.props.editing} simulationModel={simulationModel} />
     } else if (widget.type === 'Slider') {
-      return <WidgetSlider widget={widget} editing={this.props.editing} simulationModel={simulationModel} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index) } onInputChanged={(value) => this.inputDataChanged(widget, value)} />
+      return <WidgetSlider widget={widget} editing={this.props.editing} simulationModel={simulationModel} onWidgetChange={(w) => this.props.onWidgetStatusChange(w, this.props.index) } onInputChanged={value => this.inputDataChanged(widget, value)} />
     } else if (widget.type === 'Gauge') {
       return <WidgetGauge widget={widget} data={this.state.simulatorData} editing={this.props.editing} simulationModel={simulationModel} />
     } else if (widget.type === 'Box') {
@@ -217,9 +163,6 @@ class Widget extends React.Component {
   }
 
   render() {
-    // configure grid
-    const grid = [this.props.grid, this.props.grid];
-
     // get widget element
     const widget = this.props.data;
     let borderedWidget = false;
@@ -245,32 +188,9 @@ class Widget extends React.Component {
     });
 
     if (this.props.editing) {
-      const resizing = { bottom: !widget.locked, bottomLeft: !widget.locked, bottomRight: !widget.locked, left: !widget.locked, right: !widget.locked, top: !widget.locked, topLeft: !widget.locked, topRight: !widget.locked};
-
-      return (
-        <Rnd
-          ref={c => { this.rnd = c; }}
-          default={{ x: Number(widget.x), y: Number(widget.y), width: widget.width, height: widget.height }}
-          minWidth={widget.minWidth}
-          minHeight={widget.minHeight}
-          lockAspectRatio={Boolean(widget.lockAspect)}
-          bounds={'parent'}
-          className={ widgetClasses }
-          onResizeStart={(event, direction, ref) => this.borderWasClicked(event)}
-          onResizeStop={(event, direction, ref, delta) => this.resizeStop(direction, delta, event)}
-          onDrag={(event, data) => this.drag(event, data)}
-          onDragStop={(event, data) => this.dragStop(event, data)}
-          dragGrid={grid}
-          resizeGrid={grid}
-          zIndex={widget.z}
-          enableResizing={resizing}
-          disableDragging={widget.locked}
-        >
-          <ContextMenuProvider id={'widgetMenu' + this.props.index}>
-            {element}
-          </ContextMenuProvider>
-        </Rnd>
-      );
+      return <EditableWidget widget={this.props.data} grid={this.props.grid} index={this.props.index}>
+        {element}
+      </EditableWidget>;
     } else {
       return (
         <div className={ widgetClasses } style={{ width: Number(widget.width), height: Number(widget.height), left: Number(widget.x), top: Number(widget.y), 'zIndex': Number(widget.z), position: 'absolute' }}>
