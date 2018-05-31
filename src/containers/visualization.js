@@ -22,7 +22,6 @@
 import React from 'react';
 import { Container } from 'flux/utils';
 import { Button, Glyphicon } from 'react-bootstrap';
-import { ContextMenu, Item, Separator } from 'react-contexify';
 import Fullscreenable from 'react-fullscreenable';
 import Slider from 'rc-slider';
 import classNames from 'classnames';
@@ -33,6 +32,7 @@ import Dropzone from '../components/dropzone';
 import Widget from './widget';
 import EditWidget from '../components/dialog/edit-widget';
 import Grid from '../components/grid';
+import WidgetContextMenu from '../components/widget-context-menu';
 
 import UserStore from '../stores/user-store';
 import VisualizationStore from '../stores/visualization-store';
@@ -282,8 +282,8 @@ class Visualization extends React.Component {
     return increased;
   }
 
-  editWidget(e, data) {
-    this.setState({ editModal: true, modalData: this.state.visualization.widgets[data.key], modalIndex: data.key });
+  editWidget = (widget, index) => {
+    this.setState({ editModal: true, modalData: widget, modalIndex: index });
   }
 
   closeEdit(data) {
@@ -304,12 +304,14 @@ class Visualization extends React.Component {
     }
   }
 
-  deleteWidget(e, data) {
-    delete this.state.visualization.widgets[data.key];
-    var visualization = Object.assign({}, this.state.visualization, {
-        widgets: this.state.visualization.widgets
-      });
-    this.setState({ visualization: visualization });
+  deleteWidget = (widget, index) => {
+    delete this.state.visualization.widgets[index];
+
+    const visualization = Object.assign({}, this.state.visualization, {
+      widgets: this.state.visualization.widgets
+    });
+
+    this.setState({ visualization });
   }
 
   stopEditing() {
@@ -520,23 +522,10 @@ class Visualization extends React.Component {
             <Grid size={this.state.visualization.grid} disabled={this.state.visualization.grid === 1 || !this.state.editing} />
           </Dropzone>
 
-          {current_widgets != null &&
-            Object.keys(current_widgets).map(widget_key => {
-              const data = { key: widget_key };
-
-              return <ContextMenu id={'widgetMenu'+ widget_key} key={widget_key}>
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.editWidget(e, data)}>Edit</Item>
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.deleteWidget(e, data)}>Delete</Item>
-                <Separator />
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.moveWidget(e, data, this.moveAbove)}>Move above</Item>
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.moveWidget(e, data, this.moveToFront)}>Move to front</Item>
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.moveWidget(e, data, this.moveUnderneath)}>Move underneath</Item>
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.moveWidget(e, data, this.moveToBack)}>Move to back</Item>
-                <Separator />
-                <Item disabled={this.state.visualization.widgets[widget_key].locked} onClick={e => this.lockWidget(data)}>Lock</Item>
-                <Item disabled={!this.state.visualization.widgets[widget_key].locked} onClick={e => this.unlockWidget(data)}>Unlock</Item>
-              </ContextMenu>
-            })}
+          {this.state.visualization.widgets != null &&
+            Object.keys(this.state.visualization.widgets).map(widgetKey => (
+              <WidgetContextMenu index={widgetKey} widget={this.state.visualization.widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
+            ))}
 
           <EditWidget sessionToken={this.state.sessionToken} show={this.state.editModal} onClose={(data) => this.closeEdit(data)} widget={this.state.modalData} simulationModels={this.state.simulationModels} files={this.state.files} />
         </div>
