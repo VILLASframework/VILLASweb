@@ -21,7 +21,6 @@
 
 import React from 'react';
 import { Container } from 'flux/utils';
-import classNames from 'classnames';
 
 import AppDispatcher from '../app-dispatcher';
 import UserStore from '../stores/user-store';
@@ -29,7 +28,8 @@ import SimulatorDataStore from '../stores/simulator-data-store';
 import SimulationModelStore from '../stores/simulation-model-store';
 import FileStore from '../stores/file-store';
 
-import EditableWidget from '../components/editable-widget-base';
+import EditableWidgetContainer from '../components/editable-widget-container';
+import WidgetContainer from '../components/widget-container';
 
 import WidgetLamp from '../components/widget-lamp';
 import WidgetValue from '../components/widget-value';
@@ -128,7 +128,17 @@ class Widget extends React.Component {
     });
   }
 
-  createWidget(widget, simulationModel) {
+  createWidget(widget) {
+    let simulationModel = null;
+
+    for (let model of this.state.simulationModels) {
+      if (model._id !== widget.simulationModel) {
+        continue;
+      }
+
+      simulationModel = model;
+    }
+
     if (widget.type === 'Lamp') {
       return <WidgetLamp widget={widget} data={this.state.simulatorData} dummy={this.state.sequence} simulationModel={simulationModel} />
     } else if (widget.type === 'Value') {
@@ -163,41 +173,17 @@ class Widget extends React.Component {
   }
 
   render() {
-    // get widget element
-    const widget = this.props.data;
-    let borderedWidget = false;
-
-    let simulationModel = null;
-
-    for (let model of this.state.simulationModels) {
-      if (model._id !== widget.simulationModel) {
-        continue;
-      }
-
-      simulationModel = model;
-    }
-
-    const element = this.createWidget(widget, simulationModel);
-
-    const widgetClasses = classNames({
-      'widget': !this.props.editing,
-      'editing-widget': this.props.editing,
-      'border': borderedWidget,
-      'unselectable': false,
-      'locked': widget.locked && this.props.editing
-    });
+    const element = this.createWidget(this.props.data);
 
     if (this.props.editing) {
-      return <EditableWidget widget={this.props.data} grid={this.props.grid} index={this.props.index}>
+      return <EditableWidgetContainer widget={this.props.data} grid={this.props.grid} index={this.props.index}>
         {element}
-      </EditableWidget>;
-    } else {
-      return (
-        <div className={ widgetClasses } style={{ width: Number(widget.width), height: Number(widget.height), left: Number(widget.x), top: Number(widget.y), 'zIndex': Number(widget.z), position: 'absolute' }}>
-          {element}
-        </div>
-      );
+      </EditableWidgetContainer>;
     }
+
+    return <WidgetContainer widget={this.props.data}>
+      {element}
+    </WidgetContainer>;
   }
 }
 

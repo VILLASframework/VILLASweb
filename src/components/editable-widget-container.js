@@ -1,5 +1,5 @@
 /**
- * File: editable-widget-base.js
+ * File: editable-widget-container.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 31.05.2018
  *
@@ -25,7 +25,7 @@ import classNames from 'classnames';
 import Rnd from 'react-rnd';
 import { ContextMenuProvider } from 'react-contexify';
 
-class EditableWidgetBase extends React.Component {
+class EditableWidgetContainer extends React.Component {
     constructor(props) {
         super(props);
 
@@ -132,11 +132,11 @@ class EditableWidgetBase extends React.Component {
     }
 }
 
-EditableWidgetBase.PropTypes = {
+EditableWidgetContainer.PropTypes = {
     widget: PropTypes.object.isRequired,
     index: PropTypes.number.isRequired,
     grid: PropTypes.number,
     onWidgetChange: PropTypes.func
 };
 
-export default EditableWidgetBase;
+export default EditableWidgetContainer;
