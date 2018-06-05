@@ -23,6 +23,7 @@ import React from 'react';
 import { Container } from 'flux/utils';
 import Fullscreenable from 'react-fullscreenable';
 import classNames from 'classnames';
+import { Map, fromJS } from 'immutable';
 
 import Widget from './widget';
 import EditWidget from '../components/dialog/edit-widget';
@@ -42,6 +43,8 @@ import AppDispatcher from '../app-dispatcher';
 import 'react-contexify/dist/ReactContexify.min.css';
 
 class Visualization extends React.Component {
+    lastWidgetKey = 0;
+
     static getStores() {
         return [ VisualizationStore, ProjectStore, SimulationStore, SimulationModelStore, FileStore, UserStore ];
     }
@@ -63,7 +66,7 @@ class Visualization extends React.Component {
             simulations: SimulationStore.getState(),
             files: FileStore.getState(),
 
-            visualization: prevState.visualization || {},
+            visualization: prevState.visualization || Map(),
             project: prevState.project || null,
             simulation: prevState.simulation || null,
             simulationModels,
@@ -76,7 +79,6 @@ class Visualization extends React.Component {
 
             maxWidgetHeight: prevState.maxWidgetHeight  || 0,
             dropZoneHeight: prevState.dropZoneHeight  || 0,
-            last_widget_key: prevState.last_widget_key  || 0
         };
     }
 
@@ -94,14 +96,14 @@ class Visualization extends React.Component {
     }
 
     componentDidUpdate() {
-        if (this.state.visualization._id !== this.props.match.params.visualization) {
+        if (this.state.visualization.get('_id') !== this.props.match.params.visualization) {
             this.reloadVisualization();
         }
 
         // load depending project
         if (this.state.project == null && this.state.projects) {
             this.state.projects.forEach((project) => {
-                if (project._id === this.state.visualization.project) {
+                if (project._id === this.state.visualization.get('project')) {
                     this.setState({ project: project, simulation: null });
 
                     AppDispatcher.dispatch({
@@ -140,9 +142,8 @@ class Visualization extends React.Component {
     }*/
 
     getNewWidgetKey() {
-        const widgetKey = this.state.last_widget_key;
-
-        this.setState({ last_widget_key: this.state.last_widget_key + 1 });
+        const widgetKey = this.lastWidgetKey;
+        this.lastWidgetKey++;
 
         return widgetKey;
     }
@@ -163,51 +164,50 @@ class Visualization extends React.Component {
         return increased;
     }
 
-    transformToWidgetsDict(widgets) {
-        var widgetsDict = {};
-        // Create a new key and make a copy of the widget object
-        widgets.forEach( (widget) => widgetsDict[this.getNewWidgetKey()] = Object.assign({}, widget) );
-        return widgetsDict;
-    }
-
     transformToWidgetsList(widgets) {
         if (widgets == null) {
             return [];
         }
 
-        return Object.keys(widgets).map( (key) => widgets[key]);
+        return Object.keys(widgets).map(key => widgets[key]);
     }
 
     reloadVisualization() {
-        // select visualization by param id
-        this.state.visualizations.forEach((tempVisualization) => {
-            if (tempVisualization._id === this.props.match.params.visualization) {
-
-                // convert widgets list to a dictionary
-                var visualization = Object.assign({}, tempVisualization, {
-                    widgets: tempVisualization.widgets? this.transformToWidgetsDict(tempVisualization.widgets) : {}
-                });
-
-                this.computeHeightWithWidgets(visualization.widgets);
-
-                this.setState({ visualization: visualization, project: null });
-
-                AppDispatcher.dispatch({
-                    type: 'projects/start-load',
-                    data: visualization.project,
-                    token: this.state.sessionToken
-                });
+        for (let visualization of this.state.visualizations) {
+            if (visualization._id !== this.props.match.params.visualization) {
+                continue;
             }
-        });
+
+            let selectedVisualization = Map(visualization);
+
+            // convert widgets list to a dictionary to be able to reference widgets 
+            const widgets = {};
+
+            for (let widget of selectedVisualization.get('widgets')) {
+                widgets[this.getNewWidgetKey()] = widget;
+            }
+
+            selectedVisualization = selectedVisualization.set('widgets', widgets);
+
+            this.computeHeightWithWidgets(widgets);
+
+            this.setState({ visualization: selectedVisualization, project: null });
+
+            AppDispatcher.dispatch({
+                type: 'projects/start-load',
+                data: selectedVisualization.get('project'),
+                token: this.state.sessionToken
+            });
+        }
     }
 
     handleDrop = widget => {
-        const widgets = this.state.visualization.widgets || [];
+        const widgets = this.state.visualization.get('widgets') || [];
 
         const widgetKey = this.getNewWidgetKey();
         widgets[widgetKey] = widget;
 
-        const visualization = Object.assign({}, this.state.visualization, { widgets });
+        const visualization = this.state.visualization.set('widgets');
 
         // this.increaseHeightWithWidget(widget);
         
@@ -220,14 +220,10 @@ class Visualization extends React.Component {
     }
 
     widgetChange = (widget, index, callback = null) => {
-        const widgets_update = {};
-        widgets_update[index] =  widget;
+        const widgets = this.state.visualization.get('widgets');
+        widgets[index] = widget;
 
-        const new_widgets = Object.assign({}, this.state.visualization.widgets, widgets_update);
-
-        const visualization = Object.assign({}, this.state.visualization, {
-            widgets: new_widgets
-        });
+        const visualization = this.state.visualization.set('widgets');
 
         // Check if the height needs to be increased, the section may have shrunk if not
         if (!this.increaseHeightWithWidget(widget)) {
@@ -278,11 +274,10 @@ class Visualization extends React.Component {
     }
 
     deleteWidget = (widget, index) => {
-        delete this.state.visualization.widgets[index];
+        const widgets = this.state.visualization.get('widgets');
+        delete widgets[index];
 
-        const visualization = Object.assign({}, this.state.visualization, {
-            widgets: this.state.visualization.widgets
-        });
+        const visualization = this.state.visualization.set('widgets');
 
         this.setState({ visualization });
     }
@@ -299,8 +294,8 @@ class Visualization extends React.Component {
 
     saveChanges() {
         // Transform to a list
-        const visualization = Object.assign({}, this.state.visualization, {
-            widgets: this.transformToWidgetsList(this.state.visualization.widgets)
+        const visualization = Object.assign({}, this.state.visualization.toJS(), {
+            widgets: this.transformToWidgetsList(this.state.visualization.get('widgets'))
         });
 
         AppDispatcher.dispatch({
@@ -317,9 +312,7 @@ class Visualization extends React.Component {
     }
 
     setGrid = value => {
-        const visualization = Object.assign({}, this.state.visualization, {
-            grid: value
-        });
+        const visualization = this.state.visualization.set('grid', value);
 
         this.setState({ visualization });
     }
@@ -333,14 +326,15 @@ class Visualization extends React.Component {
     }
 
     render() {
-        const widgets = this.state.visualization.widgets;
+        const widgets = this.state.visualization.get('widgets');
+        const grid = this.state.visualization.get('grid');
 
         const boxClasses = classNames('section', 'box', { 'fullscreen-padding': this.props.isFullscreen });
         
         return <div className={boxClasses} >
             <div className='section-header box-header'>
             <div className="section-title">
-                <span>{this.state.visualization.name}</span>
+                <span>{this.state.visualization.get('name')}</span>
             </div>
 
             <VisualizationButtonGroup 
@@ -358,10 +352,10 @@ class Visualization extends React.Component {
 
             <div className="box box-content" onContextMenu={ (e) => e.preventDefault() }>
                 {this.state.editing &&
-                    <WidgetToolbox grid={this.state.visualization.grid} onGridChange={this.setGrid} widgets={widgets} />
+                    <WidgetToolbox grid={grid} onGridChange={this.setGrid} widgets={widgets} />
                 }
 
-                <WidgetArea widgets={widgets} editing={this.state.editing} grid={this.state.visualization.grid} onWidgetAdded={this.handleDrop}>
+                <WidgetArea widgets={widgets} editing={this.state.editing} grid={grid} onWidgetAdded={this.handleDrop}>
                     {widgets != null && Object.keys(widgets).map(widgetKey => (
                         <Widget
                             key={widgetKey}
@@ -371,7 +365,7 @@ class Visualization extends React.Component {
                             onWidgetStatusChange={(w, k) => this.widgetStatusChange(w, k)}
                             editing={this.state.editing}
                             index={widgetKey}
-                            grid={this.state.visualization.grid}
+                            grid={grid}
                             paused={this.state.paused}
                         />
                     ))}
