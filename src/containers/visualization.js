@@ -23,7 +23,7 @@ import React from 'react';
 import { Container } from 'flux/utils';
 import Fullscreenable from 'react-fullscreenable';
 import classNames from 'classnames';
-import { Map, fromJS } from 'immutable';
+import { Map } from 'immutable';
 
 import Widget from './widget';
 import EditWidget from '../components/dialog/edit-widget';
@@ -43,7 +43,7 @@ import AppDispatcher from '../app-dispatcher';
 import 'react-contexify/dist/ReactContexify.min.css';
 
 class Visualization extends React.Component {
-    lastWidgetKey = 0;
+    static lastWidgetKey = 0;
 
     static getStores() {
         return [ VisualizationStore, ProjectStore, SimulationStore, SimulationModelStore, FileStore, UserStore ];
@@ -54,19 +54,45 @@ class Visualization extends React.Component {
             prevState = {};
         }
 
+        let visualization = Map();
+        let rawVisualization = VisualizationStore.getState().find(v => v._id === props.match.params.visualization);
+
+        if (rawVisualization != null) {
+            visualization = Map(rawVisualization);
+
+            // convert widgets list to a dictionary to be able to reference widgets 
+            const widgets = {};
+
+            for (let widget of visualization.get('widgets')) {
+                widgets[this.getNewWidgetKey()] = widget;
+            }
+
+            visualization = visualization.set('widgets', widgets);
+
+            // this.computeHeightWithWidgets(widgets);
+
+            // this.setState({ visualization: selectedVisualization, project: null });
+
+            // AppDispatcher.dispatch({
+            //     type: 'projects/start-load',
+            //     data: selectedVisualization.get('project'),
+            //     token: this.state.sessionToken
+            // });
+        }
+
         let simulationModels = [];
         if (prevState.simulation != null) {
             simulationModels = SimulationModelStore.getState().filter(m => prevState.simulation.models.includes(m._id));
         }
 
         return {
+            visualization,
+
             sessionToken: UserStore.getState().token,
-            visualizations: VisualizationStore.getState(),
             projects: ProjectStore.getState(),
             simulations: SimulationStore.getState(),
             files: FileStore.getState(),
 
-            visualization: prevState.visualization || Map(),
             project: prevState.project || null,
             simulation: prevState.simulation || null,
             simulationModels,
@@ -82,13 +108,16 @@ class Visualization extends React.Component {
         };
     }
 
-    componentWillMount() {
+    componentDidMount() {
         //document.addEventListener('keydown', this.handleKeydown.bind(this));
 
-        AppDispatcher.dispatch({
-            type: 'visualizations/start-load',
-            token: this.state.sessionToken
-        });
+        if (this.state.visualization.has('id') === false) {
+            AppDispatcher.dispatch({
+                type: 'visualizations/start-load',
+                data: this.props.match.params.visualization,
+                token: this.state.sessionToken
+            });
+        }
     }
 
     componentWillUnmount() {
@@ -141,7 +170,7 @@ class Visualization extends React.Component {
         }
     }*/
 
-    getNewWidgetKey() {
+    static getNewWidgetKey() {
         const widgetKey = this.lastWidgetKey;
         this.lastWidgetKey++;
 
@@ -173,32 +202,7 @@ class Visualization extends React.Component {
     }
 
     reloadVisualization() {
-        for (let visualization of this.state.visualizations) {
-            if (visualization._id !== this.props.match.params.visualization) {
-                continue;
-            }
-
-            let selectedVisualization = Map(visualization);
-
-            // convert widgets list to a dictionary to be able to reference widgets 
-            const widgets = {};
-
-            for (let widget of selectedVisualization.get('widgets')) {
-                widgets[this.getNewWidgetKey()] = widget;
-            }
-
-            selectedVisualization = selectedVisualization.set('widgets', widgets);
-
-            this.computeHeightWithWidgets(widgets);
-
-            this.setState({ visualization: selectedVisualization, project: null });
-
-            AppDispatcher.dispatch({
-                type: 'projects/start-load',
-                data: selectedVisualization.get('project'),
-                token: this.state.sessionToken
-            });
-        }
+        
     }
 
     handleDrop = widget => {
@@ -255,22 +259,19 @@ class Visualization extends React.Component {
         this.setState({ editModal: true, modalData: widget, modalIndex: index });
     }
 
-    closeEdit(data) {
-        if (data) {
-            // save changes temporarily
-            var widgets_update = {};
-            widgets_update[this.state.modalIndex] = data;
-
-            var new_widgets = Object.assign({}, this.state.visualization.widgets, widgets_update);
-
-            var visualization = Object.assign({}, this.state.visualization, {
-                widgets: new_widgets
-            });
-
-            this.setState({ editModal: false, visualization: visualization });
-        } else {
+    closeEdit = data => {
+        if (data == null) {
             this.setState({ editModal: false });
+
+            return;
         }
+
+        const widgets = this.state.visualization.get('widgets');
+        widgets[this.state.modalIndex] = data;
+
+        const visualization = this.state.visualization.set('widgets', widgets);
+
+        this.setState({ editModal: false, visualization });
     }
 
     deleteWidget = (widget, index) => {
@@ -376,7 +377,7 @@ class Visualization extends React.Component {
                     <WidgetContextMenu key={widgetKey} index={widgetKey} widget={widgets[widgetKey]} onEdit={this.editWidget} onDelete={this.deleteWidget} onChange={this.widgetChange} />
                 ))}
 
-                <EditWidget sessionToken={this.state.sessionToken} show={this.state.editModal} onClose={(data) => this.closeEdit(data)} widget={this.state.modalData} simulationModels={this.state.simulationModels} files={this.state.files} />
+                <EditWidget sessionToken={this.state.sessionToken} show={this.state.editModal} onClose={this.closeEdit} widget={this.state.modalData} simulationModels={this.state.simulationModels} files={this.state.files} />
             </div>
         </div>;
     }
