@@ -108,6 +108,13 @@ class Visualization extends React.Component {
         };
     }
 
+    static getNewWidgetKey() {
+        const widgetKey = this.lastWidgetKey;
+        this.lastWidgetKey++;
+
+        return widgetKey;
+    }
+
     componentDidMount() {
         //document.addEventListener('keydown', this.handleKeydown.bind(this));
 
@@ -125,10 +132,6 @@ class Visualization extends React.Component {
     }
 
     componentDidUpdate() {
-        if (this.state.visualization.get('_id') !== this.props.match.params.visualization) {
-            this.reloadVisualization();
-        }
-
         // load depending project
         if (this.state.project == null && this.state.projects) {
             this.state.projects.forEach((project) => {
@@ -170,13 +173,6 @@ class Visualization extends React.Component {
         }
     }*/
 
-    static getNewWidgetKey() {
-        const widgetKey = this.lastWidgetKey;
-        this.lastWidgetKey++;
-
-        return widgetKey;
-    }
-
     increaseHeightWithWidget(widget) {
         let increased = false;
         let thisWidgetHeight = widget.y + widget.height;
@@ -199,10 +195,6 @@ class Visualization extends React.Component {
         }
 
         return Object.keys(widgets).map(key => widgets[key]);
-    }
-
-    reloadVisualization() {
-        
     }
 
     handleDrop = widget => {
