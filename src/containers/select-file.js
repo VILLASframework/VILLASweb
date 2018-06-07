@@ -1,5 +1,5 @@
 /**
- * File: selectFile.js
+ * File: select-file.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 10.05.2018
  *

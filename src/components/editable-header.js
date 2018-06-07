@@ -1,5 +1,5 @@
 /**
- * File: header.js
+ * File: editable-header.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 25.05.2018
  *

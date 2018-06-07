@@ -1,5 +1,5 @@
 /**
- * File: signalMapping.js
+ * File: signal-mapping.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 10.08.2018
  *

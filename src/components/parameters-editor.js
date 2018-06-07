@@ -1,5 +1,5 @@
 /**
- * File: header.js
+ * File: parameters-editor.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 06.06.2018
  *

@@ -38,6 +38,7 @@ import ImportSimulationModelDialog from '../components/dialog/import-simulation-
 
 import SimulatorAction from '../components/simulator-action';
 import DeleteDialog from '../components/dialog/delete-dialog';
+import SimulatorActionDialog from '../components/dialog/simulator-action-dialog';
 
 class Simulation extends React.Component {
   static getStores() {
@@ -75,6 +76,9 @@ class Simulation extends React.Component {
       deleteModal: false,
       importModal: false,
       modalData: {},
+
+      showActionDialog: false,
+      simulatorAction: {},
 
       selectedSimulationModels: []
     }
@@ -146,8 +150,6 @@ class Simulation extends React.Component {
 
     simulationModel.simulation = this.state.simulation._id;
 
-    console.log(simulationModel);
-
     AppDispatcher.dispatch({
       type: 'simulationModels/start-add',
       data: simulationModel,
@@ -208,7 +210,20 @@ class Simulation extends React.Component {
     this.setState({ selectedSimulationModels });
   }
 
-  runAction = action => {
+  showActionDialog = action => {
+    this.setState({ simulatorAction: action, showActionDialog: true });
+  }
+
+  runAction = when => {
+    this.setState({ showActionDialog: false });
+
+    if (when == null) {
+      return;
+    }
+
+    const action = this.state.simulatorAction;
+    action.data.when = when.getTime() / 1000;
+
     for (let index of this.state.selectedSimulationModels) {
       // get simulator for model
       let simulator = null;
@@ -225,6 +240,8 @@ class Simulation extends React.Component {
       if (action.data.action === 'start') {
         action.data.parameters = this.state.simulationModels[index].startParameters;
       }
+
+      console.log(action.data);
 
       AppDispatcher.dispatch({
         type: 'simulators/start-action',
@@ -262,7 +279,7 @@ class Simulation extends React.Component {
       <div style={{ float: 'left' }}>
         <SimulatorAction
           runDisabled={this.state.selectedSimulationModels.length === 0}
-          runAction={this.runAction}
+          runAction={this.showActionDialog}
           actions={[
             { id: '0', title: 'Start', data: { action: 'start' } },
             { id: '1', title: 'Stop', data: { action: 'stop' } },
@@ -281,6 +298,7 @@ class Simulation extends React.Component {
       <ImportSimulationModelDialog show={this.state.importModal} onClose={this.importSimulationModel} simulators={this.state.simulators} />
 
       <DeleteDialog title="simulation model" name={this.state.modalData.name} show={this.state.deleteModal} onClose={this.closeDeleteModal} />
+      <SimulatorActionDialog show={this.state.showActionDialog} onClose={this.runAction} />
     </div>;
   }
 }

@@ -1,5 +1,5 @@
 /**
- * File: simulationModel.js
+ * File: simulation-model.js
  * Author: Markus Grigull <mgrigull@eonerc.rwth-aachen.de>
  * Date: 10.05.2018
  *
