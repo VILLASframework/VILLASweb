@@ -1,6 +1,6 @@
 /**
  * File: simulator-action-dialog.js
- * Author: Ricardo Hernandez-Montoya <rhernandez@gridhound.de>
+ * Author: Steffen Vogel <stvogel@eonerc.rwth-aachen.de>
  * Date: 07.06.2018
  *
  * This file is part of VILLASweb.
@@ -21,9 +21,13 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup, FormControl, ControlLabel } from 'react-bootstrap';
+import { Grid, Row, Col, FormGroup, FormControl, ControlLabel } from 'react-bootstrap';
+import 'datejs';
 
+import ParametersEditor from '../parameters-editor';
 import Dialog from './dialog';
+
+const offset = 10*1000;
 
 class SimulatorActionDialog extends React.Component {
     constructor(props) {
@@ -31,7 +35,7 @@ class SimulatorActionDialog extends React.Component {
 
         this.state = {
             valid: false,
-            when: new Date()
+            when: new Date(Date.now() + offset)
         };
     }
 
@@ -46,22 +50,26 @@ class SimulatorActionDialog extends React.Component {
     }
 
     onReset = () => {
-        const now = new Date();
-
         this.setState({
             valid: true,
-            when: new Date(now.getTime() + 3 * 60 * 1000)
+            when: new Date(Date.now() + offset)
         });
     }
 
-    handleChange = event => {
-        const date = new Date().toLocaleDateString();
+    handleDateChange = event => {
+        const date = this.state.when.toLocaleDateString();
         const when = new Date(date + ' ' + event.target.value);
 
         this.setState({ when });
     }
 
+    handleStartParametersChange = startParameters => {
+      this.setState({ parameters: startParameters });
+    }
+
     render() {
+        const min = new Date(Date.now() + offset);
+
         return <Dialog show={this.props.show} title='Simulator Action' buttonTitle='Run' onClose={this.onClose} onReset={this.onReset} valid={this.state.valid}>
             <form>
                 <p>
@@ -69,9 +77,24 @@ class SimulatorActionDialog extends React.Component {
                 </p>
 
                 <FormGroup>
-                    <ControlLabel>Action time</ControlLabel>
-                    <FormControl required type='datetime-local' value={this.state.when.toLocaleTimeString()} min={new Date().toLocaleTimeString()} onChange={this.handleChange} />
+                    <ControlLabel>Action date</ControlLabel>
+                    <Grid fluid={true}>
+                        <Row>
+                          <Col lg={6}>
+                            <FormControl required type='date' value={this.state.when.toString('yyyy-MM-dd')} min={min.toString('yyyy-MM-dd')} onChange={this.handleChange} />
+                          </Col>
+                          <Col lg={6}>
+                            <FormControl required type='time' value={this.state.when.toString('HH:mm:ss')} min={min.toString('HH:mm:ss')} onChange={this.handleChange} step={1} />
+                          </Col>
+                        </Row>
+                    </Grid>
                 </FormGroup>
+
+                <FormGroup controlId='startParameters'>
+                    <ControlLabel>Additional Start Parameters</ControlLabel>
+                    <ParametersEditor onChange={this.handleStartParametersChange} />
+                </FormGroup>
+
             </form>
         </Dialog>;
     }
