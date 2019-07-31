@@ -107,12 +107,12 @@ class SelectFile extends React.Component {
     }
 
     render() {
-        const fileOptions = this.state.files.map(f => 
+        const fileOptions = this.state.files.map(f =>
             <option key={f._id} value={f._id}>{f.name}</option>
         );
 
         const progressBarStyle = {
-            marginLeft: '100px', 
+            marginLeft: '100px',
             marginTop: '-25px'
         };
 
@@ -121,7 +121,7 @@ class SelectFile extends React.Component {
                 <Col componentClass={ControlLabel} sm={3} md={2}>
                     {this.props.name}
                 </Col>
-                
+
                 <Col sm={9} md={10}>
                     <FormControl disabled={this.props.disabled} componentClass='select' placeholder='Select file' onChange={this.handleChange}>
                         {fileOptions}
@@ -148,4 +148,5 @@ class SelectFile extends React.Component {
     }
 }
 
-export default Container.create(SelectFile);
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(SelectFile));

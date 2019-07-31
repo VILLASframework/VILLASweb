@@ -139,4 +139,5 @@ class Users extends Component {
   }
 }
 
-export default Container.create(Users);
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(Users));

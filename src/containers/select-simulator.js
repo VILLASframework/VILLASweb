@@ -67,7 +67,7 @@ class SelectSimulator extends React.Component {
     }
 
     render() {
-        const simulatorOptions = this.state.simulators.map(s => 
+        const simulatorOptions = this.state.simulators.map(s =>
             <option key={s._id} value={s._id}>{_.get(s, 'properties.name') || _.get(s, 'rawProperties.name') || s.uuid}</option>
         );
 
@@ -85,4 +85,5 @@ class SelectSimulator extends React.Component {
     }
 }
 
-export default Container.create(SelectSimulator);
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(SelectSimulator));

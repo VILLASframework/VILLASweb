@@ -294,4 +294,5 @@ class Widget extends React.Component {
   }
 }
 
-export default Container.create(Widget, { withProps: true });
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(Widget), { withProps: true });

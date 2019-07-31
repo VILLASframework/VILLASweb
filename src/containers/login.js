@@ -93,4 +93,5 @@ class Login extends Component {
   }
 }
 
-export default Container.create(Login);
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(Login));

@@ -141,14 +141,14 @@ class SimulationModel extends React.Component {
 
                     <div>
                         <Col componentClass={ControlLabel} sm={3} md={2}>
-                            Start Parameters                            
+                            Start Parameters
                         </Col>
-                        
+
                         <Col sm={9} md={10}>
                             <ParametersEditor content={this.state.simulationModel.startParameters} onChange={this.handleStartParametersChange} />
                         </Col>
                     </div>
-                    
+
                 </Col>
 
                 <Col xs={12} sm={6}>
@@ -168,4 +168,5 @@ class SimulationModel extends React.Component {
     }
 }
 
-export default Container.create(SimulationModel, { withProps: true });
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(SimulationModel), { withProps: true });

@@ -148,4 +148,5 @@ class App extends React.Component {
   }
 }
 
-export default DragDropContext(HTML5Backend)(Container.create(App));
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default DragDropContext(HTML5Backend)(Container.create(fluxContainerConverter.convert(App)));

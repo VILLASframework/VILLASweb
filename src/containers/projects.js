@@ -156,4 +156,5 @@ class Projects extends React.Component {
   }
 }
 
-export default Container.create(Projects);
+let fluxContainerConverter = require('./fluxContainerConverter');
+export default Container.create(fluxContainerConverter.convert(Projects));
